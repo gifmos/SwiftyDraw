@@ -95,6 +95,7 @@ open class SwiftyDrawView: UIView {
     public var delegate               : SwiftyDrawViewDelegate?
     
     
+    private var fullPathArray         : [Line]    = []
     private var pathArray             : [Line]    = []
     private var currentPoint          : CGPoint   = CGPoint()
     private var previousPoint         : CGPoint   = CGPoint()
@@ -128,7 +129,25 @@ open class SwiftyDrawView: UIView {
         self.backgroundColor = UIColor.clear
     }
     
-    /// Overriding draw(rect:) to stroke paths
+    open func generateShapeLayer() -> CAShapeLayer {
+        let layer = CAShapeLayer()
+        layer.frame = UIScreen.main.bounds
+        
+        for line in pathArray {
+            let sublayer = CAShapeLayer()
+            sublayer.path = line.path
+            sublayer.lineCap = "round"
+            sublayer.fillColor = nil
+            sublayer.opacity = 1.0
+            sublayer.strokeColor = line.color.cgColor
+            sublayer.lineWidth = line.width
+            sublayer.opacity = Float(line.opacity)
+            layer.addSublayer(sublayer)
+        }
+        
+        return layer;
+        
+    }
     
     override open func draw(_ rect: CGRect) {
         let context : CGContext = UIGraphicsGetCurrentContext()!
@@ -158,6 +177,10 @@ open class SwiftyDrawView: UIView {
             let newLine = Line(path: CGMutablePath(), color: self.lineColor, width: self.lineWidth, opacity: self.lineOpacity)
             newLine.path.addPath(createNewPath())
             pathArray.append(newLine)
+            fullPathArray = []
+            for line in pathArray {
+                fullPathArray.append(line)
+            }
         }
     }
     
@@ -201,9 +224,17 @@ open class SwiftyDrawView: UIView {
     
     /// Remove last stroked line
     
-    public func removeLastLine() {
+    public func undo() {
         if pathArray.count > 0 {
             pathArray.removeLast()
+        }
+        setNeedsDisplay()
+    }
+    
+    public func redo() {
+        if (fullPathArray.count > pathArray.count) {
+            let currentPath = fullPathArray[pathArray.count]
+            pathArray.append(currentPath)
         }
         setNeedsDisplay()
     }
@@ -212,6 +243,7 @@ open class SwiftyDrawView: UIView {
     
     public func clearCanvas() {
         pathArray = []
+        fullPathArray = []
         setNeedsDisplay()
     }
     
